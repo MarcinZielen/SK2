@@ -1,0 +1,16 @@
+PUT /new.html HTTP/1.1
+Host: 83.20.189.193
+User-Agent: Mozilla/5.0 (X11; U; Linux i686; pl; rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7
+Accept: text/xml,application/xml,application/xhtml+xml,text/html
+Accept-Language: pl,en-us,en
+Accept-Charset: ISO-8859-2,utf-8
+Keep-Alive: 300
+Connection: keep-alive
+
+<!DOCTYPE html>
+<html>
+<body>
+<h1>My Second Heading</h1>
+<p>My second paragraph.</p>
+</body>
+</html>

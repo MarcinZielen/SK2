@@ -1,5 +1,4 @@
-GET /index.html HTTP/1.1
-Host: 83.20.189.193
+GET / HTTP/1.1
 User-Agent: Mozilla/5.0 (X11; U; Linux i686; pl; rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7
 Accept: text/xml,application/xml,application/xhtml+xml,text/html
 Accept-Language: pl,en-us,en

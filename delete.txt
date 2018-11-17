@@ -1,0 +1,2 @@
+DELETE /file.html HTTP/1.1
+

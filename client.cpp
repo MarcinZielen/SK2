@@ -32,15 +32,17 @@ int main(int argc, char **argv) {
        
        exit(1);
     }
-    int fileIn=open("req.txt", O_RDONLY);
+	char* bufor = new char[20];
+	int n = sprintf(bufor, "%s.txt", argv[3]);
+    int fileIn=open(bufor, O_RDONLY);
     char *buffer = new char;
 	while(read(fileIn,buffer,1)>0){
         write(sock,buffer,1);
 		write(1,buffer,1);
     }
-	printf("start\n");
+	//printf("start\n");
 	sleep(3);
-	printf("end\n");
+	//printf("end\n");
 	int flag;
 	fcntl(sock, F_SETFL, O_NONBLOCK);
 	while(read(sock,buffer,1)>0){
