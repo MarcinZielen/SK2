@@ -10,6 +10,10 @@
 using namespace std;
 
 int main(int argc, char **argv) {
+	if(argc<3){
+		cout << "Usage: " << argv[0] << " host port method" << endl;
+		return -5;
+	}
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
