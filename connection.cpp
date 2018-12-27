@@ -1,4 +1,4 @@
-int myConnect(char* port){
+int startListening(char* port){
 	struct sockaddr_in x, xClient;
     socklen_t mySize = sizeof(x);
     x.sin_family = AF_INET;
@@ -35,6 +35,13 @@ int myConnect(char* port){
 	}
 	fcntl(client, F_SETFL, O_NONBLOCK, 1);
     printf("connection from %s : %d\n", inet_ntoa((struct in_addr)xClient.sin_addr), ntohs(xClient.sin_port)); 
+
+	sleep(1);
+	readHeaders(client);
+	client = accept(sock,(struct sockaddr*)&xClient,&mySize);
+	sleep(1);
+	readHeaders(client);
+
 	return client;
 }
 

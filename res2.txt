@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Date: Thu, 20 Dec 2001 12:04:30 GMT
+Server: Apache/2.0.50 (Unix) DAV/2
+Set-Cookie: PSID=d6dd02e9957fb162d2385ca6f2829a73; path=/
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Keep-Alive: timeout=15, max=100
+Connection: Keep-Alive
+Content-Type: application/x-www-form-urlencoded; charset=utf-8
+

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+<table id="myTable">
+<tbody>
+	<tr>
+		<th>Country</th>
+		<th>City</th>
+		<th>First name</th>
+		<th>Color</th>
+		<th>Animal</th>		
+		<th>Plant</th>
+	</tr>
+
+	<tr>
+	<form method="POST">
+		<td><input type="text"></td>
+		<td><input type="text"></td>
+		<td><input type="text"></td>
+		<td><input type="text"></td>
+		<td><input type="text"></td>
+		<td><input type="text"></td>
+	</form>
+	</tr>
+</tbody>
+</table>		
+<button type="button" onclick="requestGameStatus()">requestGameStatus</button>
+<button type="button" onclick="requestTurnResult()">requestTurnResult</button>
+<div id="timer"></div>
+<div id="demo"></div>
+<div id="letter"></div>
+<div id="scores"></div>
+<script src="scripts.js"></script>
+</body>
+</html>

@@ -6,13 +6,29 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <map>
+#include <vector>
+#include <fstream>
+#include "rapidjson/document.h"
 
 using namespace std;
 
+void foo(string& tmp){
+	tmp = "lol";
+}
 
 int main()
 {
-	cout << atoi("p2upa") << endl;
+	map<int, string> names;
+	names[1]="batonix";
+	names[2]="emilia88";
+	map<string, int> scores;
+	scores["batonix"]=123;
+	scores["emilia88"]=321;
+	string fileName="abc";
+	//foo(fileName);
+	//cout << fileName << endl;
+	
 	
 	/*
 	int pid = fork();

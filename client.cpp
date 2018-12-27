@@ -10,8 +10,8 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-	if(argc<3){
-		cout << "Usage: " << argv[0] << " host port method" << endl;
+	if(argc<2){
+		cout << "Usage: " << argv[0] << " host port" << endl;
 		return -5;
 	}
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,8 +37,9 @@ int main(int argc, char **argv) {
        exit(1);
     }
 	char* bufor = new char[20];
-	int n = sprintf(bufor, "%s.txt", argv[3]);
-    int fileIn=open(bufor, O_RDONLY);
+	//int n = sprintf(bufor, "%s.txt", argv[3]);
+    //int fileIn=open(bufor, O_RDONLY);
+	int fileIn=open("post.txt", O_RDONLY);
     char *buffer = new char;
 	while(read(fileIn,buffer,1)>0){
         write(sock,buffer,1);
@@ -50,7 +51,10 @@ int main(int argc, char **argv) {
 	int flag;
 	fcntl(sock, F_SETFL, O_NONBLOCK);
 	while(read(sock,buffer,1)>0){
-		if((int)buffer[0]==10 || (int)buffer[0]==13) { if(++flag==4) break; }
+//this works on unixlab but doesnt work on pi
+		//if((int)buffer[0]==10 || (int)buffer[0]==13) { if(++flag==4) break; }
+//this works on pi but doesnt work on unixlab
+		if((int)buffer[0]==10 || (int)buffer[0]==13) { if(++flag==2) break; }
 		else flag = 0;
         write(1,buffer,1);
     }

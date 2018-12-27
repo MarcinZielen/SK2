@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -18,6 +19,7 @@
 #include <regex>
 #include <time.h>
 #include <string>
+#include <fstream>
 
 using namespace std;
 
@@ -26,7 +28,7 @@ string user_agent("Unknown agent");
 string method("UNKNOWN");
 string fileName("default.html");
 string line;
-string content;
+string body;
 string resCode;
 bool expectContinue;
 bool notModified;
@@ -42,6 +44,7 @@ int nRequests;
 int nHeaders;
 int newLines;
 int timeOut=10;
+int contentLength=0;
 int n;
 char *buffer = new char;
 char *bufor = new char[100];
@@ -52,7 +55,7 @@ vector<string> charsets = {"utf-8", "*"};
 vector<string> encodings = {"identity", "*"};
 vector<string> languages = {"pl", "en", "en-us", "*"};
 vector<string> MIMEtypes = {
-	"text/html", "text/plain", "text/*",
+	"text/html", "text/css", "text/plain", "text/xml", "text/*",
 	"image/gif", "image/png", "image/jpeg", "image/bmp", "image/webp", "image/svg+xml", "image/*",
 	"audio/midi", "audio/mpeg", "audio/webm", "audio/wav", "audio/*",
 	"video/webm","video/*",
@@ -72,6 +75,8 @@ bool searchVector(string val, vector<string> v){
 		token = val.substr(0, pos);
 		if(find(v.begin(), v.end(), token) != v.end()) return true;
 		val.erase(0, pos + 1);
+		//cout << "token="<<token<<endl;
+		//cout << "val="<<val<<endl;
 	}
 	if(find(v.begin(), v.end(), val) != v.end()) return true;
 	return false;
@@ -79,7 +84,9 @@ bool searchVector(string val, vector<string> v){
 
 void loadAll(){
 	extToType["txt"]="text/plain";
+	extToType["xml"]="text/xml";
 	extToType["html"]="text/html";
+	extToType["css"]="text/css";
 	extToType["gif"]="image/gif";
 	extToType["png"]="image/png";
 	extToType["jpeg"]="image/jpeg";
@@ -158,14 +165,263 @@ void loadAll(){
 	headerFunctions["Content-Encoding"]=[](string val){ if(searchVector(val,encodings)==false) resNum = 406; };
 	headerFunctions["Expect"]=[](string val){ if(val=="100-continue") expectContinue=true; };
 	headerFunctions["Host"]=[](string val){ host=val; };
-	headerFunctions["Content-length"]=[](string val){ reqLength=atoi(val.c_str()); };
+	headerFunctions["Content-Length"]=[](string val){ reqLength=stoi(val); };
 	
 	methodToResCode["GET"]=200;
 	methodToResCode["HEAD"]=204;//no content,no refresh	
 	methodToResCode["OPTIONS"]=204;//no content,no refresh	
 	methodToResCode["DELETE"]=205;//no content, refresh
 	//methodToResCode["PUT"]=200;//if put modifies,sends back resource
-	//methodToResCode["PUT"]=201;//created,link to resource
+	//methodToResCode["PUT"]=201;//created,link to resource	
+}
+
+string extension(string filename){
+	int deli = filename.find_last_of(".");
+	if(deli != string::npos){
+		string ext = filename.substr(deli+1,filename.length()-deli);
+		return ext;			
+	}
+}
+
+string readBody(int client){
+	cout << reqLength << endl;
+	int length=0;
+	char *myChar = new char;
+	string body;
+	time_t  start = time(NULL);//start timer/keep alive value/how long am i willing to listen for the whole body
+	//while(true){	
+		while(read(client,myChar,1)>0){
+			cout << myChar[0];
+			body += myChar;
+			if(++length==reqLength) break;
+		}
+		cout << "\nskonczylem\n";
+		
+	//IMPORTANT! DELETE THIS HARDCODED LINE BELOW
+		//if(length==10) break;
+	//hardcoded timeOut, send msg before closing
+		if(difftime(time(NULL),start)>timeOut){//check the timer
+			//tell client times up and im done with waiting
+			//close(client);
+		}
+	//}
+	return body;
+}
+
+int readHeaders(int client){
+	time_t start = time(NULL);//start timer(how long am i willing to listen for all headers)
+	int count = 0; 
+	while(true){
+		while(read(client,buffer,1)>0){
+			count++;
+			line += buffer;
+			try{
+				//cout << buffer[0];
+				if((int)buffer[0]==10){
+					if(line.length()>1000){
+						resNum = 414;//uri too long
+						return 1;
+						//break;
+					}				
+					if(++newLines==4){
+						keepGoing=true;
+						return 1;
+						//break; 
+					}
+					int deli = line.find(": ");
+					if(deli != string::npos){
+						string key = line.substr(0, deli);
+						string val = line.substr(deli+2,line.length()-deli-3);
+						//cout << key << ": ";
+						
+						if(headerFunctions.find(key) != headerFunctions.end()){
+							headerFunctions[key](val);
+							//if(resNum>0) cout << resNum <<endl;
+						}
+						//cout << val << endl;
+						nHeaders++;				
+					}
+					else{
+						method = line.substr(0,line.find(" "));
+						if(line.find("HTTP/1.")!=string::npos){
+							fileName = line.substr(line.find("/")+1,line.find("HTTP/1.")-line.find("/")-2); 
+							if(fileName.length()==0) fileName = "default.html";
+							cout << client << " " << method << " " << fileName << endl;
+							nRequests++;
+						}else{
+							resNum=505;//wrong http version
+							return 1;
+							//break; 
+						}
+					}
+					line = "";
+				}else if((int)buffer[0]==13){
+					if(++newLines==4){
+						keepGoing=true;
+						return 1;
+						//break; 
+					}
+				}
+				else newLines = 0;				
+			}catch(...){ resNum = 400; }//generic client error
+		}
+		if(count<1) return -1;
+		if(keepGoing){
+			keepGoing=false;
+			return 1;
+			//break; 
+		}
+//hardcoded timeOut, send msg before closing
+		if(difftime(time(NULL),start)>timeOut){//check the timer
+			//tell client times up and im done with waiting
+			//close(client);
+		}
+	}
+}
+
+char* getTime(){
+	time_t now;
+	time(&now);
+	struct tm *t = gmtime(&now);
+	char* godzina = new char[30];
+	strftime( godzina, 30, "%a, %d %b %Y %X GMT", t );
+	return godzina;
+}
+
+void writeHeaders(int client){
+//HARDCODED TO WORK ALWAYS
+		if(fileName=="favicon.ico"){
+			n = sprintf(bufor, "404 Not Found\n");
+			write(client, bufor, n);
+			write(1, bufor, n);
+		}
+		else{
+			n = sprintf(bufor, "HTTP/1.1 200 OK\n");
+			write(client, bufor, n);
+			write(1, bufor, n);
+		}
+//NOT HARDCODED TO WORK	ALWAYS
+		//n = sprintf(bufor, "HTTP/1.1 %d %s\n",resNum,resCode.c_str());
+		//write(client, bufor, n);
+		//write(1, bufor, n);
+		
+		n = sprintf(bufor, "Date: %s\n", getTime());
+		write(client, bufor, n);
+		//write(1, bufor, n);
+		
+		n = sprintf(bufor, "Server: CustomServer2000\n");
+		write(client, bufor, n);
+		//write(1, bufor, n);
+		
+		n = sprintf(bufor, "Content-Language: en\n");
+		write(client, bufor, n);
+		//write(1, bufor, n);
+		
+		n = sprintf(bufor, "Access-Control-Allow-Origin: *\n");
+		write(client, bufor, n);
+		//write(1, bufor, n);		
+
+		string ext = extension(fileName);
+		if(extToType.find(ext) != extToType.end() ){
+			string type = extToType[ext];
+			printf("%s\n", type.c_str() );
+			n = sprintf(bufor, "Content-Type: %s; charset=utf-8\n", type.c_str());
+			write(client, bufor, n);	
+			//write(1, bufor, n);
+		}
+
+		struct stat stat_buf;
+		if( stat(fileName.c_str(), &stat_buf) == 0){
+			n = sprintf(bufor, "Content-Length: %d\n", stat_buf.st_size);
+			write(client, bufor, n);	
+			//write(1, bufor, n);
+		}
+
+		n = sprintf(bufor, "\n");
+		write(client, bufor, n);
+		//write(1, bufor, n);
+
+		if(method.rfind("GET"==0)){
+			//host=".";//TEMPORARY
+			string wholePath=("./"+fileName);
+			cout << wholePath << endl;
+			char *threadBuffer = new char;  
+			int res=open(wholePath.c_str(), O_RDONLY);
+			if(res<0){
+				printf("File error\n");
+				printf("%s\n",wholePath.c_str());
+			}else{
+				while(read(res,threadBuffer,1)>0){
+					write(client, threadBuffer, 1);
+					//write(1, threadBuffer, 1);
+				}
+			}
+			close(res);
+		}
+}
+
+int checkConditions(){
+	//random nr here, change it
+	//if(resNum==200){
+	if(resNum==123){
+		if(expectContinue) resNum=100;//continue
+		if(methodToResCode.find(method) != methodToResCode.end()){
+			resNum=methodToResCode[method];
+		}
+//206 range bytes
+//300 bez sensu bo serwer sam wybierze domyslny sposob
+		if(host=="oldPernament") resNum=301;//pernament,can change method
+		//if(host=="oldTemporary") resNum=302;//temporary,can change method
+		//if(host=="oldTemporary") resNum=307;//temporary,cant change method
+//if(notModified) resNum=304;
+		//if(fileName=="oldPernament") resNum=308;//pernament,cant change method
+		//if(host=="oldPernament") resNum=301;//pernament,cant change method		
+		if(host=="secure" && !authorized){//TODO
+			n = sprintf(bufor, "WWW-Authenticate: Basic realm=\"Enter the password\", charset=\"UTF-8\"\n");
+			write(client, bufor, n);		
+			resNum=401;
+		}
+		if(find(badMethods.begin(), badMethods.end(), method) != badMethods.end()) resNum = 405;//bad method
+		if(host=="deleted") resNum=410;	
+		//if(contentLength==0) resNum=411;//length required
+		//if(notModified) resNum=412;//if other than get or head
+		if(contentLength>10000) resNum=413;//too big
+		if(fileName=="teapot") resNum=418;//im a teapot
+		if(fileName=="unprocessable") resNum=422;
+		if(noPreconditions) resNum=428;
+		if(nRequests>5) resNum=429;
+		if(nHeaders>50) resNum=431;
+		if(fileName=="illegal") resNum=451;
+		
+		if(find(methods.begin(), methods.end(), method) == methods.end()) resNum = 501;//unknow method
+		if(underConstruction) resNum=503;
+	}else{
+		if(expectContinue) resNum=417;//abort
+	}
 	
+	/*
+	if(host=="forbidden") resNum=403;
+	string tmp = host+"/"+fileName;
+	int res=open(tmp.c_str(), O_RDONLY);
+	close(res);
+	if(res<0){
+		printf("File %s error\n",tmp.c_str());
+		resNum=404;//not found
+	}
+	if (find(methods.begin(), methods.end(), badMethod) != methods.end()) resNum = 405;//bad method
+	if(host=="deleted") resNum=410;	
+	//if(contentLength==0) resNum=411;//length required
+	//if(notModified) resNum=412;//if other than get or head
+	if(contentLength>10000) resNum=413;//too big
+	if(expectContinue && !correct) resNum=417;//abort
+	if(fileName=="teapot") resNum=418;//im a teapot
+	if(fileName=="unprocessable") resNum=422;
+	if(noPreconditions) resNum=428;
+	in(nRequests>5) resNum=429;
+	in(nHeaders>50) resNum=431;
+	if(fileName=="illegal") resNum=451;
 	
+	if(find(methods.begin(), methods.end(), method) == methods.end()) resNum = 501;//unknow method
+	if(underConstruction) resNum=503;
+	*/	
 }
