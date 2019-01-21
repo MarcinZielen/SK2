@@ -2,8 +2,6 @@
 
 using namespace std;
 
-mutex ls;
-
 class Connection {
 	public:
 	bool keepAlive = false;
@@ -61,7 +59,29 @@ void Connection::checkConditions(){
 		if(find(methods.begin(), methods.end(), method) == methods.end()) resNum = 501;//unknow method
 		else{
 			if(find(badMethods.begin(), badMethods.end(), method) != badMethods.end()) resNum = 405;//bad method
-			else{
+			else{	
+				/*
+				muFile.lock();
+				if(writers.find(fileName.c_str())!=writers.end()){
+					muFile.unlock();
+					resNum = 503;//temporary unavaible
+					return;
+				}
+				if(method=="DELETE"){
+					if(readers.find(fileName.c_str())!=readers.end()){
+						muFile.unlock();
+						resNum = 503;//temporary unavaible
+						return;
+					}
+					else writers.insert(fileName.c_str());
+				}					
+				if(method=="GET" || method=="HEAD" || method=="OPTIONS"){					
+					if(readers.find(fileName.c_str())!=readers.end()) readers[fileName.c_str()]++;						
+					else readers[fileName.c_str()]=1;
+				}
+				muFile.unlock();
+				*/
+				
 //206 range bytes
 //300 bez sensu bo serwer sam wybierze domyslny sposob
 				if(fileName=="oldPernament.html") resNum=301;//pernament,can change method
@@ -71,7 +91,9 @@ void Connection::checkConditions(){
 				//if(fileName=="oldPernament.html") resNum=308;//pernament,cant change method
 				//if(fileName=="oldPernament.html") resNum=301;//pernament,cant change method		
 				//if(fileName=="forbidden.html") resNum=403;
-				if(find(forbidden.begin(), forbidden.end(), fileName) != forbidden.end()) resNum = 403;
+				if(method=="PUT" || method=="DELETE"){
+					if(find(forbidden.begin(), forbidden.end(), fileName) != forbidden.end()) resNum = 403;
+				}
 				
 				struct stat stat_buf;
 				if( stat(fileName.c_str(), &stat_buf) != 0) resNum=404;//not found
@@ -85,7 +107,7 @@ void Connection::checkConditions(){
 				//if(nRequests>5) resNum=429;
 				//if(nHeaders>50) resNum=431;
 				if(fileName=="illegal.html") resNum=451;		
-				if(fileName=="underConstruction.html") resNum=503;				
+				//if(fileName=="underConstruction.html") resNum=503;				
 			}
 		}
 	}
@@ -98,28 +120,49 @@ void Connection::checkConditions(){
 }
 
 void Connection::myPut(){	
+	/*
+	muFile.lock();
+	if(readers.find(fileName.c_str())!=readers.end() || writers.find(fileName.c_str())!=writers.end()){
+		muFile.unlock();
+		resNum = 503;//temporary unavaible
+		return;
+	}
+	else{
+		writers.insert(fileName.c_str());
+		muFile.unlock();
+	}
+	*/
+	if(resNum==403) return;
 	struct stat stat_buf;
 	if( stat(fileName.c_str(), &stat_buf) != 0) resNum=201;//created
-	else resNum=200;//modified
+	else{
+		resNum=200;//modified
+		remove(fileName.c_str());
+	}
 	
 	int length=0;
 	char *myChar = new char;
-	int newFile = open(fileName.c_str(), O_WRONLY | O_CREAT);
+	
+	int newFile = open(fileName.c_str(), O_WRONLY | O_CREAT);	
 	time_t start = time(NULL);//start timer/keep alive value/how long am i willing to listen for the whole body
 	while(true){	
 		while(read(clientFd,myChar,1)>0){
-			printf("%c", myChar[0]);
+			//printf("%c", myChar[0]);
 			write(newFile,myChar,1);
 			if(++length>=reqLength) {
-				close(newFile);			
+				close(newFile);	
+				
+				/*
 				char* bufor = new char[30];				
 				sprintf(bufor, "chmod 777 %s", fileName.c_str());
 				FILE* pipe = popen(bufor, "r");
 				pclose(pipe);
+				*/
 				
-				//ls.lock();
-				//writeLs();
-				//ls.unlock();
+				char* bufor = new char[30];	
+				int n = sprintf(bufor, "chmod 777 %s", fileName.c_str());
+				write(1, bufor, n);
+				system(bufor);
 				
 				return;
 			}
@@ -133,6 +176,15 @@ void Connection::myPut(){
 			//cout << body;
 			close(newFile);
 			remove(fileName.c_str());
+			
+			/*
+			muFile.lock();
+			writers.erase(fileName.c_str());
+			muFile.unlock();
+			*/
+			
+			resNum=408;//timeout
+				
 			return;
 		}
 	}
@@ -204,6 +256,7 @@ int Connection::readHeaders(){
 //tell client times up and im done with waiting
 //delete from clientFds set
 			//cout << "Im done with waiting\n";
+			resNum=408;//timeout
 			return -1;
 		}
 	}
@@ -236,12 +289,14 @@ void Connection::writeHeaders(){
 	//write(clientFd, bufor, n);
 	//write(1, bufor, n);
 	
+	/*
 	if((fileName=="secure.html") && !authorized){//TODO
 		n = sprintf(bufor, "WWW-Authenticate: Basic realm=\"Enter the password\", charset=\"UTF-8\"\n");
 		write(clientFd, bufor, n);
 		write(1, bufor, n);		
 		resNum=401;
 	}
+	*/
 	
 	if(method=="PUT"){
 		n = sprintf(bufor, "Content-Location: /%s\n", fileName.c_str());
@@ -255,6 +310,12 @@ void Connection::writeHeaders(){
 		n = sprintf(bufor, "\n");
 		write(clientFd, bufor, n);
 		//write(1, bufor, n);
+		
+		/*
+		muFile.lock();
+		writers.erase(fileName.c_str());
+		muFile.unlock();
+		*/
 	}
 	
 	if(method=="OPTIONS"){
@@ -281,6 +342,14 @@ void Connection::writeHeaders(){
 		n = sprintf(bufor, "\n");
 		write(clientFd, bufor, n);
 		//write(1, bufor, n);
+		
+		/*
+		muFile.lock();		
+		if(--readers[fileName.c_str()]==0){
+			readers.erase(fileName.c_str());
+		}
+		muFile.unlock();
+		*/
 	}
 	
 	if(method=="GET" || method=="HEAD"){
@@ -356,30 +425,36 @@ void Connection::writeHeaders(){
 				//if(fileName=="index.txt") ls.unlock();
 			}
 		}
+		
+		/*
+		muFile.lock();		
+		if(--readers[fileName.c_str()]==0){
+			readers.erase(fileName.c_str());
+		}
+		muFile.unlock();
+		*/
 	}
 	
 	if(method=="DELETE"){
-		remove((fileName).c_str());
-		
-		struct stat stat_buf;
-		if( stat("delete.html", &stat_buf) == 0){
-			n = sprintf(bufor, "Content-Length: %ld\n", stat_buf.st_size);
-			write(clientFd, bufor, n);	
-			//write(1, bufor, n);
-		}
+		n = sprintf(bufor, "Content-Length: 0\n");
+		write(clientFd, bufor, n);
+		//write(1, bufor, n);
+
 		n = sprintf(bufor, "\n");
 		write(clientFd, bufor, n);
 		//write(1, bufor, n);
 		
-		int res=open("delete.html", O_RDONLY);
-		char* myChar = new char;
-		while(read(res,myChar,1)>0){
-		   write(clientFd, myChar, 1);
+		if(resNum==200) {
+			n = sprintf(bufor, "rm -r %s", fileName.c_str());
+			write(1, bufor, n);
+			//system(bufor);
 		}
-		close(res);	
-
-		//ls.lock();
-		//writeLs();
-		//ls.unlock();
+					
+	
+		/*
+		muFile.lock();		
+		writers.erease(fileName.c_str());
+		muFile.unlock();
+		*/
 	}
 }

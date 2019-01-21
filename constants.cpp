@@ -20,7 +20,7 @@ vector<string> MIMEtypes = {
 	"application/javascript", "application/pdf", "application/*",
 	"*/*"
 };
-vector<string> forbidden = {"x", "x.cpp"};
+vector<string> forbidden = {"x.cpp", "index.html", "server.cpp"};
 
 map<string, string> extToType={
 	{"txt", "text/plain"},

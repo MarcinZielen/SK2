@@ -9,6 +9,13 @@ var newNode;
 
 window.onload = function(){ showNewTable(); }
 
+function isImage(fileName){
+	var extension = fileName.slice(fileName.lastIndexOf(".")+1);
+	var arr = ["png", "jpg", "webp", "gif", "bmp"];	
+	if(arr.indexOf(extension) > -1) return true;
+	else return false;
+}
+
 function showOldTable(){
 	var content = document.getElementById("content");
 	content.removeChild(content.childNodes[0]);
@@ -41,7 +48,12 @@ function showEdit(fileName, folder){
 					}
 					else {
 						showOldTable();
-						alert("Something went wrong so "+fileName+" couldnt be deleted");
+						if(this.status==403) alert("You dont have permission to delete "+fileName);
+						else if(this.status==404) alert("Theres no such file as "+fileName);
+						else {
+							alert("Something went wrong so "+fileName+" couldnt be deleted");
+							console.log(this.status+" "+this.statusText);
+						}
 					}
 				}
 			}
@@ -53,7 +65,7 @@ function showEdit(fileName, folder){
 	deleteButton.appendChild(deleteText);
 	edit.appendChild(deleteButton);
 	
-	if(fileName.lastIndexOf(".png")==-1){
+	if(!isImage(fileName)){
 		var xhttp = new XMLHttpRequest();
 		xhttp.onreadystatechange = function() {
 			if (this.readyState == 4){
@@ -76,9 +88,20 @@ function showEdit(fileName, folder){
 						if(confirm("Are you sure you want to overwrite "+fileName+"?")){
 							var xhttp2 = new XMLHttpRequest();
 							xhttp2.onreadystatechange = function() {
-								if (this.readyState == 4 && this.status==200){
-									showNewTable();
-									alert("You have successfully overwritten "+fileName);
+								if (this.readyState == 4){
+									if(this.status==200){
+										showNewTable();
+										alert("You have successfully overwritten "+fileName);
+									}
+									else{
+										showOldTable();
+										if(this.status==403) alert("You dont have permission to overwrite "+fileName);
+										else if(this.status==404) alert("Theres no such file as "+fileName);
+										else{
+											alert("Something went wrong so "+fileName+" couldnt be overwritten");
+											console.log(this.status+" "+this.statusText);
+										}
+									}
 								}
 							}
 							xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+fileName, true); 
@@ -92,9 +115,14 @@ function showEdit(fileName, folder){
 					edit.appendChild(document.createElement("br"));
 					edit.appendChild(textarea);
 				}
-				else if(this.status==403){
-					var textnode = document.createTextNode("You dont have access to this resource");
-					edit.appendChild(textnode);
+				else{
+					showOldTable();
+					if(this.status==403) alert("You dont have access to "+fileName);
+					else if(this.status==404) alert("Theres no such file as "+fileName);
+					else {
+						alert("Something went wrong so "+fileName+" couldnt be accessed");
+						console.log(this.status+" "+this.statusText);
+					}
 				}
 			}
 		}
@@ -151,7 +179,12 @@ function showNew(folder){
 								}
 								else {
 									showOldTable();
-									alert("Something went wrong so "+fileName+" couldnt be overwritten");
+									if(this.status==403) alert("You dont have permission to overwrite "+fileName);
+									else if(this.status==404) alert("Theres no such file as "+fileName);
+									else {
+										alert("Something went wrong so "+fileName+" couldnt be overwritten");
+										console.log(this.status+" "+this.statusText);
+									}
 								}
 							}
 						}
@@ -169,12 +202,25 @@ function showNew(folder){
 							}
 							else {
 								showOldTable();
-								alert("Something went wrong so "+fileName+" couldnt be created");
+								if(this.status==403) alert("You dont have permission to create "+fileName);
+								else if(this.status==404) alert("Theres no such file as "+fileName);
+								else {
+									alert("Something went wrong so "+fileName+" couldnt be created");
+									console.log(this.status+" "+this.statusText);
+								}
 							}
 						}
 					}
 					xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+fileName, true); 
-				xhttp2.send(textarea.value);
+					xhttp2.send(textarea.value);
+				}
+				else{
+					showOldTable();
+					if(this.status==403) alert("You dont have permission to access "+fileName);
+					else {
+						alert("Something went wrong so "+fileName+" couldnt be accessed");
+						console.log(this.status+" "+this.statusText);
+					}
 				}
 			}
 		}
@@ -222,14 +268,9 @@ function showNewTable(folder){
 			//<input type="button" value="SEND FILE" onclick="document.getElementById('file').click();" />
 			//<input type='file' style="display:none;" id="file" onchange='openFile(event)'>
 			
-			var inputButton = document.createElement("input");
-			inputButton.type = "button";
-			inputButton.value = "SEND FILE";
-			inputButton.onclick = function(){ document.getElementById('file').click(); };
-			myTable.appendChild(inputButton);
+			
 			
 			var inputFile = document.createElement("input");
-			inputFile.id = "file";
 			inputFile.type = "file";
 			inputFile.style = "display: none";
 			inputFile.onchange = function(e){ 
@@ -249,7 +290,12 @@ function showNewTable(folder){
 										}
 										else {
 											showOldTable();
-											alert("Something went wrong so "+file.name+" couldnt be overwritten");
+											if(this.status==403) alert("You dont have permission to overwrite "+fileName);
+											else if(this.status==404) alert("Theres no such file as "+fileName);
+											else {
+												alert("Something went wrong so "+fileName+" couldnt be overwritten");
+												console.log(this.status+" "+this.statusText);
+											}
 										}
 									}
 								}
@@ -267,12 +313,25 @@ function showNewTable(folder){
 									}
 									else {
 										showOldTable();
-										alert("Something went wrong so "+file.name+" couldnt be created");
+										if(this.status==403) alert("You dont have permission to created "+fileName);
+										else if(this.status==404) alert("Theres no such file as "+fileName);
+										else {
+											alert("Something went wrong so "+fileName+" couldnt be created");
+											console.log(this.status+" "+this.statusText);
+										}
 									}
 								}
 							}
 							xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+file.name, true); 
-						xhttp2.send(file);
+							xhttp2.send(file);
+						}
+						else{
+							showOldTable();
+							if(this.status==403) alert("You dont have permission to access "+fileName);
+							else {
+								alert("Something went wrong so "+fileName+" couldnt be accessed");
+								console.log(this.status+" "+this.statusText);
+							}
 						}
 					}
 				}
@@ -280,6 +339,12 @@ function showNewTable(folder){
 				xhttp.send();
 			}
 			myTable.appendChild(inputFile);
+			
+			var inputButton = document.createElement("input");
+			inputButton.type = "button";
+			inputButton.value = "SEND FILE";
+			inputButton.onclick = function(){ inputFile.click(); };
+			myTable.appendChild(inputButton);
 			
 			myTable2 = document.createElement("table");
 			myTable.appendChild(myTable2);
@@ -304,32 +369,7 @@ function showNewTable(folder){
 							editButton.onclick=function(){showEdit(this.previousSibling.innerText, folder)};
 							var editText = document.createTextNode("EDIT");
 							editButton.appendChild(editText);
-							tr.appendChild(editButton);
-							
-							var deleteButton = document.createElement("button");
-							deleteButton.onclick=function(){
-								var fileName = this.previousSibling.previousSibling.innerText;
-								if(confirm("Are you sure you want to delete "+fileName+"?")){
-									var xhttp2 = new XMLHttpRequest();
-									xhttp2.onreadystatechange = function() {
-										if (this.readyState == 4){
-											if(this.status==200){
-												showNewTable();
-												alert("You have successfully deleted "+fileName);
-											}
-											else {
-												showOldTable();
-												alert("Something went wrong so "+fileName+" couldnt be deleted");
-											}
-										}
-									}
-									xhttp2.open("DELETE", "http://"+location.host+"/"+folder+"/"+fileName, true); 
-									xhttp2.send();
-								}
-							}
-							var deleteText = document.createTextNode("DELETE");
-							deleteButton.appendChild(deleteText);
-							tr.appendChild(deleteButton);
+							tr.appendChild(editButton);							
 						}
 						else {
 							var a = document.createElement("a");
@@ -338,7 +378,40 @@ function showNewTable(folder){
 							td.appendChild(a);				
 							var textnode = document.createTextNode(words[j]);
 							a.appendChild(textnode);
+							
+							var span = document.createElement("span");
+							tr.appendChild(span);
 						}
+						
+						var deleteButton = document.createElement("button");
+						deleteButton.onclick=function(){
+							var fileName = this.previousSibling.previousSibling.innerText;
+							if(confirm("Are you sure you want to delete "+fileName+"?")){
+								var xhttp2 = new XMLHttpRequest();
+								xhttp2.onreadystatechange = function() {
+									if (this.readyState == 4){
+										if(this.status==200){
+											showNewTable();
+											alert("You have successfully deleted "+fileName);
+										}
+										else{
+											showOldTable();
+											if(this.status==403) alert("You dont have permission to delete "+fileName);
+											else if(this.status==404) alert("Theres no such file as "+fileName);
+											else {
+												alert("Something went wrong so "+fileName+" couldnt be deleted");
+												console.log(this.status+" "+this.statusText);
+											}
+										}
+									}
+								}
+								xhttp2.open("DELETE", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+								xhttp2.send();
+							}
+						}
+						var deleteText = document.createTextNode("DELETE");
+						deleteButton.appendChild(deleteText);
+						tr.appendChild(deleteButton);
 			
 					}else{
 						var textnode = document.createTextNode(words[j]);
@@ -351,7 +424,6 @@ function showNewTable(folder){
 	xhttp.open("GET", "http://"+location.host+"/"+folder, true); 
 	xhttp.send();		
 }
-
 </script>
 <style>
 #table { width: 100%; }
