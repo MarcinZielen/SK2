@@ -1,0 +1,27 @@
+razem 432
+-rwxr-xr-x 1 pi pi  13820 gru 27 16:19 client
+-rw-r--r-- 1 pi pi   1771 gru 27 16:19 client.cpp
+-rw-r--r-- 1 pi pi  11120 sty 17  2019 Connection.cpp
+-rw-r--r-- 1 pi pi   3112 sty  9  2019 constants.cpp
+-rw-r--r-- 1 pi pi     74 sty  9  2019 created.html
+-rw-r--r-- 1 pi pi     95 gru 27 16:19 deleted.html
+-rw-r--r-- 1 pi pi    818 sty  9  2019 delete.html
+-rw-r--r-- 1 pi pi     28 gru 27 16:19 delete.txt
+-rw-r--r-- 1 pi pi   2294 sty 17  2019 functions.cpp
+-rw-r--r-- 1 pi pi    274 gru 27 16:19 get.txt
+-rw-r--r-- 1 pi pi   8851 sty 17  2019 index.html
+-rwxrwxrwx 1 pi pi   1336 gru 30 12:26 ls.txt
+-rw-r--r-- 1 pi pi     75 gru 29 07:02 Makefile
+-rw-r--r-- 1 pi pi    289 gru 27 16:19 post.txt
+-rw-r--r-- 1 pi pi    909 sty  9  2019 put.html
+-rw-r--r-- 1 pi pi    403 gru 27 16:19 put.txt
+-rw-r--r-- 1 pi pi   1085 gru 27 16:19 res.txt
+-rw-r--r-- 1 pi pi   3197 gru 27 16:19 scripts.js
+-rwxrwxrwx 1 pi pi    106 gru 29 21:40 second.html
+-rwxrwxrwx 1 pi pi    114 gru 30 11:26 styles.css
+-rwxrwxrwx 1 pi pi   1972 gru 29 16:48 table.html
+-rw-r--r-- 1 pi pi     74 sty  9  2019 updated.html
+-rw-r--r-- 1 pi pi    535 gru 27 16:19 xampReq.txt
+-rw-r--r-- 1 pi pi     76 sty 17  2019 x.cpp
+-rwxr-xr-x 1 pi pi 303476 gru 30 12:26 xPoll
+-rw-r--r-- 1 pi pi   4367 sty 17  2019 xPoll.cpp

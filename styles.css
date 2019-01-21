@@ -5,4 +5,7 @@ table {
 tr:last-child {
 	background-color: red;
 }
+a {
+	color: green;
+}
 

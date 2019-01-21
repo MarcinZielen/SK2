@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<body>
+<span id="content">
+</span>
+<script>
+var myTable;
+var newNode;
+
+window.onload = function(){ showNewTable(); }
+
+function showOldTable(){
+	var content = document.getElementById("content");
+	content.removeChild(content.childNodes[0]);
+	content.appendChild(myTable);
+}
+
+function showEdit(fileName, folder){
+	if(folder==null) folder = ".";
+	var content = document.getElementById("content");
+	content.removeChild(content.childNodes[0]);
+	
+	var edit = document.createElement("span");
+	content.appendChild(edit);
+	
+	var cancelButton = document.createElement("button");
+	cancelButton.onclick=function(){showOldTable()};
+	var cancelText = document.createTextNode("CANCEL");
+	cancelButton.appendChild(cancelText);
+	edit.appendChild(cancelButton);
+	
+	var deleteButton = document.createElement("button");
+	deleteButton.onclick=function(){
+		if(confirm("Are you sure you want to delete "+fileName+"?")){
+			var xhttp2 = new XMLHttpRequest();
+			xhttp2.onreadystatechange = function() {
+				if (this.readyState == 4){
+					if(this.status==200){
+						showNewTable();
+						alert("You have successfully deleted "+fileName);
+					}
+					else {
+						showOldTable();
+						alert("Something went wrong so "+fileName+" couldnt be deleted");
+					}
+				}
+			}
+			xhttp2.open("DELETE", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+			xhttp2.send();
+		}
+	}
+	var deleteText = document.createTextNode("DELETE");
+	deleteButton.appendChild(deleteText);
+	edit.appendChild(deleteButton);
+	
+	if(fileName.lastIndexOf(".png")==-1){
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4){
+				if(this.status==200){			
+					var textarea = document.createElement("textarea");
+					textarea.onkeydown = function(e) {
+						if(e.keyCode==9 || e.which==9){
+							e.preventDefault();
+							var s = this.selectionStart;
+							var e = this.selectionEnd;
+							this.value = (this.value.substring(0, s)+"\t"+this.value.substring(e));
+							this.selectionStart = this.selectionEnd = s+1;
+						}
+					}
+					var textnode = document.createTextNode(this.responseText);
+					textarea.appendChild(textnode);				
+				
+					var saveButton = document.createElement("button");
+					saveButton.onclick=function(){
+						if(confirm("Are you sure you want to overwrite "+fileName+"?")){
+							var xhttp2 = new XMLHttpRequest();
+							xhttp2.onreadystatechange = function() {
+								if (this.readyState == 4 && this.status==200){
+									showNewTable();
+									alert("You have successfully overwritten "+fileName);
+								}
+							}
+							xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+							xhttp2.send(textarea.value);
+						}
+					}	
+					var saveText = document.createTextNode("SAVE");
+					saveButton.appendChild(saveText);
+					
+					edit.appendChild(saveButton);
+					edit.appendChild(document.createElement("br"));
+					edit.appendChild(textarea);
+				}
+				else if(this.status==403){
+					var textnode = document.createTextNode("You dont have access to this resource");
+					edit.appendChild(textnode);
+				}
+			}
+		}
+		xhttp.open("GET", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+		xhttp.send();
+	}
+	else {
+		var image = document.createElement("img");
+		edit.appendChild(document.createElement("br"));
+		edit.appendChild(image);
+		image.src = (folder+"/"+fileName);
+	}	
+}
+
+function showNew(folder){
+	if(folder==null) folder = ".";
+	var content = document.getElementById("content");
+	content.removeChild(content.childNodes[0]);		
+	newNode = document.createElement("span");
+	content.appendChild(newNode);
+	
+	var textarea = document.createElement("textarea");
+	textarea.onkeydown = function(e) {
+		if(e.keyCode==9 || e.which==9){
+			e.preventDefault();
+			var s = this.selectionStart;
+			var e = this.selectionEnd;
+			this.value = (this.value.substring(0, s)+"\t"+this.value.substring(e));
+			this.selectionStart = this.selectionEnd = s+1;
+		}
+	}
+	
+	var cancelButton = document.createElement("button");
+	cancelButton.onclick=function(){showOldTable()};
+	var cancelText = document.createTextNode("CANCEL");
+	cancelButton.appendChild(cancelText);
+	
+	var input = document.createElement("input");
+		
+	var saveButton = document.createElement("button");
+	saveButton.onclick=function(){
+		var fileName = input.value;
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4){
+				if(this.status==200){
+					if(confirm("Theres already existing file named "+fileName+"\nDo you want to overwrite it?")){
+						var xhttp2 = new XMLHttpRequest();
+						xhttp2.onreadystatechange = function() {
+							if (this.readyState == 4){
+								if(this.status==200){
+									showNewTable();
+									alert("You have successfully overwritten "+fileName);
+								}
+								else {
+									showOldTable();
+									alert("Something went wrong so "+fileName+" couldnt be overwritten");
+								}
+							}
+						}
+						xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+						xhttp2.send(textarea.value);
+					}
+				}
+				else if(this.status==404){
+					var xhttp2 = new XMLHttpRequest();
+					xhttp2.onreadystatechange = function() {
+						if (this.readyState == 4){
+							if(this.status==201){
+								showNewTable();
+								alert("You have successfully created "+fileName);
+							}
+							else {
+								showOldTable();
+								alert("Something went wrong so "+fileName+" couldnt be created");
+							}
+						}
+					}
+					xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+				xhttp2.send(textarea.value);
+				}
+			}
+		}
+		xhttp.open("HEAD", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+		xhttp.send();
+	}	
+	var saveText = document.createTextNode("SAVE AS");
+	saveButton.appendChild(saveText);
+	
+	newNode.appendChild(cancelButton);
+	newNode.appendChild(saveButton);
+	newNode.appendChild(input);
+	newNode.appendChild(document.createElement("br"));
+	newNode.appendChild(textarea);
+}
+
+function showNewTable(folder){
+	if(folder==null) folder = ".";
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status==200){
+			var myString = this.responseText;
+			myString = myString.substr(myString.indexOf("\n")+1);
+			var content = document.getElementById("content");
+			content.removeChild(content.childNodes[0]);
+			
+			myTable = document.createElement("span");
+			content.appendChild(myTable);
+			
+			if(folder!="."){
+				var backButton = document.createElement("button");
+				var crumb = folder.substr(0, folder.lastIndexOf("/"));
+				backButton.onclick=function(){showNewTable(crumb)};
+				var backText = document.createTextNode("BACK");
+				backButton.appendChild(backText);
+				myTable.appendChild(backButton);
+			}
+			
+			var newButton = document.createElement("button");
+			newButton.onclick=function(){showNew(folder)};
+			var newText = document.createTextNode("CREATE FILE");
+			newButton.appendChild(newText);
+			myTable.appendChild(newButton);
+			
+			//<input type="button" value="SEND FILE" onclick="document.getElementById('file').click();" />
+			//<input type='file' style="display:none;" id="file" onchange='openFile(event)'>
+			
+			var inputButton = document.createElement("input");
+			inputButton.type = "button";
+			inputButton.value = "SEND FILE";
+			inputButton.onclick = function(){ document.getElementById('file').click(); };
+			myTable.appendChild(inputButton);
+			
+			var inputFile = document.createElement("input");
+			inputFile.id = "file";
+			inputFile.type = "file";
+			inputFile.style = "display: none";
+			inputFile.onchange = function(e){ 
+				//console.log(event.target.files[0])
+				var file = event.target.files[0];
+				var xhttp = new XMLHttpRequest();
+				xhttp.onreadystatechange = function() {
+					if (this.readyState == 4){
+						if(this.status==200){
+							if(confirm("Theres already existing file named "+file.name+"\nDo you want to overwrite it?")){
+								var xhttp2 = new XMLHttpRequest();
+								xhttp2.onreadystatechange = function() {
+									if (this.readyState == 4){
+										if(this.status==200){
+											showNewTable();
+											alert("You have successfully overwritten "+file.name);
+										}
+										else {
+											showOldTable();
+											alert("Something went wrong so "+file.name+" couldnt be overwritten");
+										}
+									}
+								}
+								xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+file.name, true); 
+								xhttp2.send(file);
+							}
+						}
+						else if(this.status==404){
+							var xhttp2 = new XMLHttpRequest();
+							xhttp2.onreadystatechange = function() {
+								if (this.readyState == 4){
+									if(this.status==201){
+										showNewTable();
+										alert("You have successfully created "+file.name);
+									}
+									else {
+										showOldTable();
+										alert("Something went wrong so "+file.name+" couldnt be created");
+									}
+								}
+							}
+							xhttp2.open("PUT", "http://"+location.host+"/"+folder+"/"+file.name, true); 
+						xhttp2.send(file);
+						}
+					}
+				}
+				xhttp.open("HEAD", "http://"+location.host+"/"+folder+"/"+file.name, true); 
+				xhttp.send();
+			}
+			myTable.appendChild(inputFile);
+			
+			myTable2 = document.createElement("table");
+			myTable.appendChild(myTable2);
+			var lines = myString.split("\n");
+			for(var i=0; i<lines.length-1; i++){
+				var tr = document.createElement("tr");
+				myTable2.appendChild(tr);
+				var words = lines[i].split(/ +/g);
+				for(j in words){
+					var td = document.createElement("td");
+					tr.appendChild(td);
+					if(j==words.length-1){
+						if(words[j].lastIndexOf(".")!=-1){
+							var a = document.createElement("a");
+							//a.href=("http://"+location.host+"/"+words[j]);
+							a.onclick=function(){showEdit(this.innerText, folder)};
+							td.appendChild(a);				
+							var textnode = document.createTextNode(words[j]);
+							a.appendChild(textnode);						
+						
+							var editButton = document.createElement("button");
+							editButton.onclick=function(){showEdit(this.previousSibling.innerText, folder)};
+							var editText = document.createTextNode("EDIT");
+							editButton.appendChild(editText);
+							tr.appendChild(editButton);
+							
+							var deleteButton = document.createElement("button");
+							deleteButton.onclick=function(){
+								var fileName = this.previousSibling.previousSibling.innerText;
+								if(confirm("Are you sure you want to delete "+fileName+"?")){
+									var xhttp2 = new XMLHttpRequest();
+									xhttp2.onreadystatechange = function() {
+										if (this.readyState == 4){
+											if(this.status==200){
+												showNewTable();
+												alert("You have successfully deleted "+fileName);
+											}
+											else {
+												showOldTable();
+												alert("Something went wrong so "+fileName+" couldnt be deleted");
+											}
+										}
+									}
+									xhttp2.open("DELETE", "http://"+location.host+"/"+folder+"/"+fileName, true); 
+									xhttp2.send();
+								}
+							}
+							var deleteText = document.createTextNode("DELETE");
+							deleteButton.appendChild(deleteText);
+							tr.appendChild(deleteButton);
+						}
+						else {
+							var a = document.createElement("a");
+							//a.href=("http://"+location.host+"/"+words[j]);
+							a.onclick=function(){showNewTable(folder+"/"+this.innerText)};
+							td.appendChild(a);				
+							var textnode = document.createTextNode(words[j]);
+							a.appendChild(textnode);
+						}
+			
+					}else{
+						var textnode = document.createTextNode(words[j]);
+						td.appendChild(textnode);
+					}
+				}			
+			}
+		}
+	};
+	xhttp.open("GET", "http://"+location.host+"/"+folder, true); 
+	xhttp.send();		
+}
+
+</script>
+<style>
+#table { width: 100%; }
+textarea { width: 50vw; height: 50vh; }
+a { color: blue; text-decoration: underline; cursor: pointer; }
+img { width: auto; height: 75vh; }
+</style>
+</body>
+</html>
