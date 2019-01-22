@@ -20,4 +20,6 @@ owy działa (domyślnie port 1234), łamane na "index.html", np.: "192.168.10.2:
 | constants.cpp  | Stałe, wektory, słowniki, zmienne globalne wspólne dla wszystkich połączeń  |
 | functions.cpp  | Globalne funkcje pomocnicze  |
 | index.html  | Główny widok aplikacji  |
+| scripts.js | Plik kontrolujący widok aplikacji |
+| styles.css | Opisuje wygląd |
 | Makefile  | Plik z dyrektywami kompilacji  |
