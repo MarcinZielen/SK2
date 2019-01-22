@@ -3,49 +3,6 @@
 
 using namespace std;
 
-/*
-void writeLs(int clientFd){
-	
-	FILE* pipe = popen("ls -l", "r");
-	//if (!pipe) throw runtime_error("popen() failed!");
-	string table = "";
-	char* bufor = new char[2];
-	try {
-		while (!feof(pipe)) {
-			if (fgets(bufor, 2, pipe) != NULL){
-				table += bufor;
-			}
-		}
-	} catch (...) {
-		pclose(pipe);
-	}
-	pclose(pipe);
-	remove("ls.txt");
-	int newFile = open("ls.txt", O_WRONLY | O_CREAT);
-	for(unsigned int i=0;i<table.length();i++){
-		write(newFile, &(table.c_str()[i]), 1);
-	}
-	close(newFile);
-	pipe = popen("chmod 777 ls.txt", "r");
-	pclose(pipe);
-	
-	char* folder = new char[50];
-	sprintf(folder, "cd ./%s;ls -l", fileName.c_str());
-	FILE* pipe = popen(folder, "r");
-	string table = "";
-	char* bufor = new char[2];
-	while (!feof(pipe)) {
-		if (fgets(bufor, 2, pipe) != NULL){
-			table += bufor;
-		}
-	}
-	pclose(pipe);
-	for(unsigned int i=0;i<table.length();i++){
-		write(clientFd, &(table.c_str()[i]), 1);
-	}
-}
-*/
-
 bool searchVector(string val, vector<string> v){
 	unsigned int coma = val.find(',');
 	unsigned int colon = val.find(';');
