@@ -41,14 +41,9 @@ uint16_t readPort(char * txt);
 // sets SO_REUSEADDR
 void setReuseAddr(int sock);
 
+
 int main(int argc, char ** argv){
 	if(argc != 2) error(1, 0, "Need 1 arg (port)");
-	/*
-	else if(argv[1]=="--help"){
-		printf("Usage: %s port\n", argv[0]);
-		return;
-	}
-	*/
 
 	// get and validate port number	
 	auto port = readPort(argv[1]);
@@ -65,7 +60,6 @@ int main(int argc, char ** argv){
 	setReuseAddr(servFd);
 	
 	// bind to any address and port provided in arguments
-	//sockaddr_in serverAddr{.sin_family=AF_INET, .sin_port=htons((short)port), .sin_addr={INADDR_ANY}};
 	sockaddr_in serverAddr;
 	serverAddr.sin_family=AF_INET;
 	serverAddr.sin_port=htons((short)port);
@@ -85,8 +79,9 @@ int main(int argc, char ** argv){
 	epoll_ctl(fd, EPOLL_CTL_ADD, servFd, &event);
 	
 	while(true){
-		int resultCount = epoll_wait(fd, &event, 1, -1);
-		if(resultCount<0) printf("epoll_wait went wrong\n");
+		//int resultCount = epoll_wait(fd, &event, 1, -1);
+		//if(resultCount<0) printf("epoll_wait went wrong\n");
+		epoll_wait(fd, &event, 1, -1);
 		if( event.events & EPOLLIN){
 			int clientFd = event.data.fd;
 			if(clientFd == servFd ){
@@ -121,9 +116,7 @@ int main(int argc, char ** argv){
 						} else {
 							con.checkConditions();
 							if(con.method=="PUT"){
-								//printf("reading body...\n", con.clientFd);
 								con.myPut();
-								//printf("\ndone reading body\n", con.clientFd);
 							}									
 							con.writeHeaders();
 							

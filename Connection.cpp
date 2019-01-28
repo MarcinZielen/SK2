@@ -7,7 +7,7 @@ class Connection {
 	bool keepAlive = false;
 	bool expectContinue = false;
 	bool authorized = false;
-	bool isFolder = false;
+	bool isDir = false;
 	int clientFd;
 	int keepAliveTime = 10;
 	int resNum = 200;
@@ -139,53 +139,60 @@ void Connection::myPut(){
 		resNum=200;//modified
 		remove(fileName.c_str());
 	}
-	
-	int length=0;
-	char *myChar = new char;
-	
-	int newFile = open(fileName.c_str(), O_WRONLY | O_CREAT);	
-	time_t start = time(NULL);//start timer/keep alive value/how long am i willing to listen for the whole body
-	while(true){	
-		while(read(clientFd,myChar,1)>0){
-			//printf("%c", myChar[0]);
-			write(newFile,myChar,1);
-			if(++length>=reqLength) {
-				close(newFile);	
+	if(isDir){
+		char* bufor = new char[30];	
+		int n = sprintf(bufor, "mkdir -p %s", fileName.c_str());
+		write(1, bufor, n);
+		system(bufor);
+	}
+	else{		
+		int length=0;
+		char *myChar = new char;
+		
+		int newFile = open(fileName.c_str(), O_WRONLY | O_CREAT);	
+		time_t start = time(NULL);//start timer/keep alive value/how long am i willing to listen for the whole body
+		while(true){	
+			while(read(clientFd,myChar,1)>0){
+				//printf("%c", myChar[0]);
+				write(newFile,myChar,1);
+				if(++length>=reqLength) {
+					close(newFile);	
+					
+					/*
+					char* bufor = new char[30];				
+					sprintf(bufor, "chmod 777 %s", fileName.c_str());
+					FILE* pipe = popen(bufor, "r");
+					pclose(pipe);
+					*/
+					
+					char* bufor = new char[30];	
+					int n = sprintf(bufor, "chmod 777 %s", fileName.c_str());
+					write(1, bufor, n);
+					system(bufor);
+					
+					return;
+				}
+			}
+	//send msg before closing		
+			if(keepAlive && difftime(time(NULL),start)>keepAliveTime){//check the timer
+				//cout << "Im done with waiting\n";
+	//close(clientFd);
+	//tell client times up and im done with waiting
+	//delete from clientFds set
+				//cout << body;
+				close(newFile);
+				remove(fileName.c_str());
 				
 				/*
-				char* bufor = new char[30];				
-				sprintf(bufor, "chmod 777 %s", fileName.c_str());
-				FILE* pipe = popen(bufor, "r");
-				pclose(pipe);
+				muFile.lock();
+				writers.erase(fileName.c_str());
+				muFile.unlock();
 				*/
 				
-				char* bufor = new char[30];	
-				int n = sprintf(bufor, "chmod 777 %s", fileName.c_str());
-				write(1, bufor, n);
-				system(bufor);
-				
+				resNum=408;//timeout
+					
 				return;
 			}
-		}
-//send msg before closing		
-		if(keepAlive && difftime(time(NULL),start)>keepAliveTime){//check the timer
-			//cout << "Im done with waiting\n";
-//close(clientFd);
-//tell client times up and im done with waiting
-//delete from clientFds set
-			//cout << body;
-			close(newFile);
-			remove(fileName.c_str());
-			
-			/*
-			muFile.lock();
-			writers.erase(fileName.c_str());
-			muFile.unlock();
-			*/
-			
-			resNum=408;//timeout
-				
-			return;
 		}
 	}
 }
@@ -231,7 +238,10 @@ int Connection::readHeaders(){
 							if(line.find("HTTP/1.")!=string::npos){
 								fileName = line.substr(line.find("/")+1,line.find("HTTP/1.")-line.find("/")-2); 
 								//if(fileName.length()==0) fileName = "index.html";
-								if(extension(fileName)=="folder") isFolder = true;
+								if(extension(fileName)=="folder") {
+									isDir = true;
+									printf("its dir called %s\n", fileName.c_str());	
+								}
 								if(fileName.length()==0) fileName = ".";
 								printf("%d %s %s\n", clientFd, method.c_str(), fileName.c_str());		
 								if(++nRequests>5) {
@@ -364,14 +374,14 @@ void Connection::writeHeaders(){
 			write(clientFd, bufor, n);	
 			//write(1, bufor, n);
 		}else{
-			if(isFolder) n = sprintf(bufor, "Content-Type: text/plain\n");
+			if(isDir) n = sprintf(bufor, "Content-Type: text/plain\n");
 			else n = sprintf(bufor, "Content-Type: */*\n");
 			write(clientFd, bufor, n);	
 			//write(1, bufor, n);
 		}
 		
 		string table = "";
-		if(isFolder){
+		if(isDir){
 			//printf("1its folder named %s\n", fileName.c_str());
 			sprintf(bufor, "cd ./%s;ls -l", fileName.c_str());
 			FILE* pipe = popen(bufor, "r");			
@@ -386,7 +396,7 @@ void Connection::writeHeaders(){
 		
 		struct stat stat_buf;
 		if( stat(fileName.c_str(), &stat_buf) == 0){
-			if(isFolder) n = sprintf(bufor, "Content-Length: %d\n", table.length());
+			if(isDir) n = sprintf(bufor, "Content-Length: %d\n", table.length());
 			else n = sprintf(bufor, "Content-Length: %ld\n", stat_buf.st_size);
 			if(resNum==403) n = sprintf(bufor, "Content-Length: 0\n");
 			write(clientFd, bufor, n);	
@@ -404,7 +414,7 @@ void Connection::writeHeaders(){
 		
 		if(resNum!=403 && method=="GET"){
 			char *myChar = new char;
-			if(isFolder){
+			if(isDir){
 				for(unsigned int i=0;i<table.length();i++){
 					write(clientFd, &(table.c_str()[i]), 1);
 					//write(1, &(table.c_str()[i]), 1);
